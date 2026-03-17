@@ -7,8 +7,12 @@ import { useEffect } from "react";
 
 export function useContentProtection() {
   useEffect(() => {
-    // Disable right-click context menu
+    // Disable right-click context menu (allow in inputs/textareas for spell-check "Add to dictionary")
     const handleContextMenu = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (["INPUT", "TEXTAREA"].includes(target.tagName) || target.getAttribute("contenteditable") === "true" || target.closest("[contenteditable='true']")) {
+        return; // allow context menu in form fields (spell-check, paste, etc.)
+      }
       e.preventDefault();
       return false;
     };
