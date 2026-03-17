@@ -47,6 +47,34 @@ const AppContent = () => {
   return null;
 };
 
+/** Hides global overlays (watermark, toasts, popups) on fullscreen nav route */
+const AppShell = () => {
+  const isNavFullscreen = window.location.pathname === "/navegar";
+  return (
+    <>
+      {!isNavFullscreen && <AppContent />}
+      {!isNavFullscreen && <Watermark />}
+      <Toaster />
+      <Sonner />
+      {!isNavFullscreen && <UpdatePrompt />}
+      {!isNavFullscreen && <WordSelectionPopup />}
+      <Routes>
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/install" element={<Install />} />
+        <Route path="/privacidade" element={<Privacy />} />
+        <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/ajuda" element={<ProtectedRoute><Help /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+        <Route path="/visualizador" element={<ProtectedRoute><Viewer /></ProtectedRoute>} />
+        <Route path="/navegar" element={<ProtectedRoute><NavegacaoTelaCheiaPage /></ProtectedRoute>} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
+  );
+};
+
 const App = () => (
   <GlobalErrorBoundary>
     <QueryClientProvider client={queryClient}>
@@ -54,26 +82,8 @@ const App = () => (
         <ProfileProvider>
         <VoiceCallProvider>
         <TooltipProvider delayDuration={300}>
-          <AppContent />
-          <Watermark />
-          <Toaster />
-          <Sonner />
-          <UpdatePrompt />
-          <WordSelectionPopup />
           <BrowserRouter>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/install" element={<Install />} />
-              <Route path="/privacidade" element={<Privacy />} />
-              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-              <Route path="/ajuda" element={<ProtectedRoute><Help /></ProtectedRoute>} />
-              <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-              <Route path="/visualizador" element={<ProtectedRoute><Viewer /></ProtectedRoute>} />
-              <Route path="/navegar" element={<ProtectedRoute><NavegacaoTelaCheiaPage /></ProtectedRoute>} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <AppShell />
           </BrowserRouter>
         </TooltipProvider>
         </VoiceCallProvider>

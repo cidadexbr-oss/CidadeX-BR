@@ -270,18 +270,18 @@ const NavigationFullscreen = ({
       <div ref={mapRef} className="absolute inset-0" style={{ filter: `brightness(${isNight ? 1.35 : 1}) contrast(${isNight ? 1.1 : 1})`, transition: "filter 2s ease-in-out" }} />
 
       <div className="absolute inset-0 pointer-events-none flex flex-col z-[1000]">
-        {/* Maneuver card */}
-        <div className="pointer-events-auto mx-3 mt-3" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
-          <div className="nav-glass rounded-2xl px-4 py-3 flex items-center gap-3">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0" style={{ background: `${accent}25`, border: `2px solid ${accent}40` }}>
-              <ManeuverIcon className="w-8 h-8" style={{ color: accent }} strokeWidth={2.5} />
+        {/* Maneuver card — compact */}
+        <div className="pointer-events-auto mx-2.5 mt-1.5" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+          <div className="nav-glass rounded-xl px-3 py-2 flex items-center gap-2.5">
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${accent}20`, border: `1.5px solid ${accent}35` }}>
+              <ManeuverIcon className="w-6 h-6" style={{ color: accent }} strokeWidth={2.5} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-3xl font-display font-bold text-white leading-tight">{distToStep}</p>
-              <p className="text-sm font-semibold truncate mt-0.5" style={{ color: accent }}>{streetName || maneuverLabel}</p>
+              <p className="text-2xl font-display font-bold text-white leading-none">{distToStep}</p>
+              <p className="text-xs font-semibold truncate mt-0.5" style={{ color: accent }}>{streetName || maneuverLabel}</p>
             </div>
-            <button onClick={onClose} className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(239,68,68,0.25)", border: "1px solid rgba(239,68,68,0.4)" }}>
-              <X className="w-4 h-4 text-red-400" />
+            <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(239,68,68,0.25)", border: "1px solid rgba(239,68,68,0.4)" }}>
+              <X className="w-3.5 h-3.5 text-red-400" />
             </button>
           </div>
         </div>
@@ -347,33 +347,33 @@ const NavigationFullscreen = ({
           </div>
         )}
 
-        {/* Bottom dashboard */}
-        <div className="pointer-events-auto mx-3 mb-3" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
-          <div className="nav-glass rounded-2xl px-4 py-3 flex items-center justify-between gap-2">
+        {/* Bottom dashboard — compact */}
+        <div className="pointer-events-auto mx-2.5 mb-2" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+          <div className="nav-glass rounded-xl px-3 py-2 flex items-center justify-between gap-1.5">
             {/* Speedometer */}
             <div className="flex flex-col items-center shrink-0">
-              <div className="w-16 h-16 rounded-full flex flex-col items-center justify-center" style={{ border: `3px solid ${speedColor}`, boxShadow: `0 0 12px ${speedColor}40`, transition: "border-color 0.5s, box-shadow 0.5s" }}>
-                <span className="text-2xl font-display font-bold leading-none" style={{ color: speedColor, transition: "color 0.5s" }}>{speed}</span>
-                <span className="text-white/40 text-[8px] font-semibold mt-0.5">km/h</span>
+              <div className="w-14 h-14 rounded-full flex flex-col items-center justify-center" style={{ border: `2.5px solid ${speedColor}`, boxShadow: `0 0 10px ${speedColor}35`, transition: "border-color 0.5s, box-shadow 0.5s" }}>
+                <span className="text-xl font-display font-bold leading-none" style={{ color: speedColor, transition: "color 0.5s" }}>{speed}</span>
+                <span className="text-white/40 text-[7px] font-semibold mt-0.5">km/h</span>
               </div>
               {radarAlert?.maxspeed && (
                 <div className="mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: `${speedColor}25`, color: speedColor }}>lim {radarAlert.maxspeed}</div>
               )}
             </div>
-            <div className="w-px h-10 bg-white/15 shrink-0" />
+            <div className="w-px h-8 bg-white/15 shrink-0" />
             <div className="text-center">
-              <p className="text-white text-lg font-display font-bold">{formatDuration(remainingDuration)}</p>
-              <p className="text-white/40 text-[10px] font-semibold uppercase tracking-wider">Tempo</p>
+              <p className="text-white text-base font-display font-bold leading-tight">{formatDuration(remainingDuration)}</p>
+              <p className="text-white/40 text-[9px] font-semibold uppercase tracking-wider">Tempo</p>
             </div>
-            <div className="w-px h-10 bg-white/15 shrink-0" />
+            <div className="w-px h-8 bg-white/15 shrink-0" />
             <div className="text-center">
-              <p className="text-lg font-display font-bold" style={{ color: accent }}>{eta.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p>
-              <p className="text-white/40 text-[10px] font-semibold uppercase tracking-wider">Chegada</p>
+              <p className="text-base font-display font-bold leading-tight" style={{ color: accent }}>{eta.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p>
+              <p className="text-white/40 text-[9px] font-semibold uppercase tracking-wider">Chegada</p>
             </div>
-            <div className="w-px h-10 bg-white/15 shrink-0" />
+            <div className="w-px h-8 bg-white/15 shrink-0" />
             <div className="text-center">
-              <p className="text-white text-lg font-display font-bold">{formatDistance(remainingDistance)}</p>
-              <p className="text-white/40 text-[10px] font-semibold uppercase tracking-wider">Dist.</p>
+              <p className="text-white text-base font-display font-bold leading-tight">{formatDistance(remainingDistance)}</p>
+              <p className="text-white/40 text-[9px] font-semibold uppercase tracking-wider">Dist.</p>
             </div>
           </div>
         </div>
