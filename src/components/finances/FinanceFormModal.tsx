@@ -633,7 +633,7 @@ const FinanceFormModal = ({ open, onClose, onSave, editRecord, saving, existingP
                   className="w-full px-3 py-2 rounded-lg bg-muted text-foreground text-sm outline-none focus:ring-2 ring-primary/30"
                 >
                   <option value={1}>À vista (1x)</option>
-                  {Array.from({ length: 23 }, (_, i) => i + 2).map(n => {
+                  {Array.from({ length: 59 }, (_, i) => i + 2).map(n => {
                     const displayVal = installmentMode === "dividir"
                       ? (finalAmount / n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
                       : finalAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
