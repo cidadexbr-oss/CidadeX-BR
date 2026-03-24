@@ -64,7 +64,8 @@ const FinancesSection = () => {
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   const [sortField, setSortField] = useState<"entry_date" | "due_date" | "payment_date" | "amount" | "installment" | "description" | "status">("due_date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-  const [periodFilter, setPeriodFilter] = useState<"mes_atual" | "mes_anterior" | "todos" | "periodo">("mes_atual");
+  const [periodFilter, setPeriodFilter] = useState<"mes" | "todos" | "periodo">("mes");
+  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [periodStart, setPeriodStart] = useState<string | null>(null);
   const [periodEnd, setPeriodEnd] = useState<string | null>(null);
   const [manualContacts, setManualContacts] = useState<{ id: string; name: string; phone: string | null }[]>([]);
@@ -919,14 +920,9 @@ const FinancesSection = () => {
     .filter(r => {
       // Period filter based on due_date (fallback to entry_date)
       const refDate = r.due_date || r.entry_date;
-      if (periodFilter === "mes_atual") {
-        const start = format(startOfMonth(new Date()), "yyyy-MM-dd");
-        const end = format(endOfMonth(new Date()), "yyyy-MM-dd");
-        if (refDate < start || refDate > end) return false;
-      } else if (periodFilter === "mes_anterior") {
-        const prev = subMonths(new Date(), 1);
-        const start = format(startOfMonth(prev), "yyyy-MM-dd");
-        const end = format(endOfMonth(prev), "yyyy-MM-dd");
+      if (periodFilter === "mes") {
+        const start = format(startOfMonth(currentMonth), "yyyy-MM-dd");
+        const end = format(endOfMonth(currentMonth), "yyyy-MM-dd");
         if (refDate < start || refDate > end) return false;
       } else if (periodFilter === "periodo") {
         if (periodStart && refDate < periodStart) return false;
@@ -1166,9 +1162,36 @@ const FinancesSection = () => {
         )}
       </div>
 
-      {/* Period + Sort — single line */}
+      {/* Period navigation + Sort */}
       <div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap scrollbar-none">
-        {([["mes_atual", "Mês Atual", "Exibir registros do mês atual"], ["mes_anterior", "Mês Anterior", "Exibir registros do mês passado"], ["todos", "Todos", "Exibir todos os registros"], ["periodo", "Por Período", "Definir intervalo de datas personalizado"]] as const).map(([key, label, hint]) => (
+        {/* Month navigation */}
+        <div className="shrink-0 flex items-center gap-0.5 bg-primary/5 rounded-lg px-1 py-0.5">
+          <button
+            onClick={() => { setPeriodFilter("mes"); setCurrentMonth((m) => subMonths(m, 1)); }}
+            className="w-6 h-6 rounded-md flex items-center justify-center text-primary hover:bg-primary/10 transition-colors text-xs font-bold"
+            title="Mês anterior"
+          >
+            &lt;
+          </button>
+          <button
+            onClick={() => { setPeriodFilter("mes"); setCurrentMonth(new Date()); }}
+            className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
+              periodFilter === "mes" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"
+            }`}
+            title="Clique para voltar ao mês atual"
+          >
+            {format(currentMonth, "MMM/yyyy", { locale: ptBR }).replace(/^\w/, (c) => c.toUpperCase())}
+          </button>
+          <button
+            onClick={() => { setPeriodFilter("mes"); setCurrentMonth((m) => addMonths(m, 1)); }}
+            className="w-6 h-6 rounded-md flex items-center justify-center text-primary hover:bg-primary/10 transition-colors text-xs font-bold"
+            title="Próximo mês"
+          >
+            &gt;
+          </button>
+        </div>
+        {/* Todos + Por Período */}
+        {([["todos", "Todos", "Exibir todos os registros"], ["periodo", "Período", "Definir intervalo de datas"]] as const).map(([key, label, hint]) => (
           <button
             key={key}
             onClick={() => {
