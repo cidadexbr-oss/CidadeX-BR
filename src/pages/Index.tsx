@@ -557,7 +557,7 @@ const Index = () => {
                             toast({ title: "ℹ️ Sem suporte", description: "Service Worker não disponível neste navegador." });
                           } else if (result.status === "updating" || result.status === "found_update") {
                             toast({ title: "🔄 Nova versão encontrada!", description: result.newVersion ? `${APP_VERSION} → ${result.newVersion}. Recarregando...` : "Recarregando..." });
-                            setTimeout(() => window.location.reload(), 1000);
+                            setTimeout(() => { window.location.href = window.location.origin + "/?_t=" + Date.now(); }, 1000);
                           } else {
                             toast({ title: "✅ Tudo atualizado!", description: `Você já está na versão mais recente (${APP_VERSION}).` });
                           }
@@ -643,7 +643,7 @@ const Index = () => {
                             toast({ title: "ℹ️ Sem suporte", description: "Service Worker não disponível neste navegador." });
                           } else if (result.status === "updating" || result.status === "found_update") {
                             toast({ title: "🔄 Nova versão encontrada!", description: result.newVersion ? `${APP_VERSION} → ${result.newVersion}. Recarregando...` : "Recarregando..." });
-                            setTimeout(() => window.location.reload(), 1000);
+                            setTimeout(() => { window.location.href = window.location.origin + "/?_t=" + Date.now(); }, 1000);
                           } else {
                             toast({ title: "✅ Tudo atualizado!", description: `Você já está na versão mais recente (${APP_VERSION}).` });
                           }

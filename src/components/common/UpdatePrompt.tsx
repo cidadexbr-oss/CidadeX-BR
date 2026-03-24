@@ -36,12 +36,19 @@ const UpdatePrompt = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleForceUpdate = useCallback(() => {
-    // Clear all caches and force reload
-    if ("caches" in window) {
-      caches.keys().then(names => names.forEach(n => caches.delete(n)));
+  const handleForceUpdate = useCallback(async () => {
+    // Unregister all service workers
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
     }
-    window.location.reload();
+    // Clear all caches
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+    // Force reload bypassing cache
+    window.location.href = window.location.origin + "/?_t=" + Date.now();
   }, []);
 
   const showPrompt = needRefresh || forceUpdate;
