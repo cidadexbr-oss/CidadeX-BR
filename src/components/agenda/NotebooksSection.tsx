@@ -793,6 +793,35 @@ const NotebooksSection = React.forwardRef<HTMLDivElement>(function NotebooksSect
               rows={12}
               className="w-full px-3 py-2 rounded-lg bg-muted text-foreground text-sm outline-none focus:ring-2 ring-primary/30 placeholder:text-muted-foreground resize-none font-mono"
             />
+            {/* Image previews in edit mode */}
+            {(() => {
+              const imgRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+              const images: { alt: string; src: string }[] = [];
+              let im;
+              while ((im = imgRegex.exec(noteContent)) !== null) {
+                images.push({ alt: im[1] || "imagem", src: im[2] });
+              }
+              if (!images.length) return null;
+              return (
+                <div className="rounded-lg border border-border bg-card/60 p-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+                    Imagens anexadas
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {images.map((img, i) => (
+                      <img
+                        key={i}
+                        src={img.src}
+                        alt={img.alt}
+                        className="h-20 w-20 object-cover rounded-lg border border-border cursor-pointer hover:opacity-80 transition-opacity"
+                        loading="lazy"
+                        onClick={() => setLightboxSrc({ src: img.src, alt: img.alt })}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
             {(() => {
               const linkRegex = /(https?:\/\/[^\s)\]]+)|(mailto:[^\s)\]]+)|(tel:\+?\d{8,15})|([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})|(\b\d{5}-?\d{3}\b)|((?:\+?\d{1,3}[\s-]?)?\(?\d{2,3}\)?[\s.-]?\d{4,5}[\s.-]?\d{4})/gi;
               const found: { type: string; value: string; href: string }[] = [];
