@@ -355,25 +355,31 @@ const NotebooksSection = React.forwardRef<HTMLDivElement>(function NotebooksSect
     return text + "\n" + images.map(url => `![imagem](${url})`).join("\n");
   };
 
-  const handleImageUpload = async (file: File) => {
+  const handleFileUpload = async (file: File) => {
     if (!user) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "Imagem muito grande", description: "Máximo 5 MB.", variant: "destructive" });
+    const isImage = file.type.startsWith("image/");
+    const isPdf = file.type === "application/pdf";
+    if (!isImage && !isPdf) {
+      toast({ title: "Formato não suportado", description: "Envie imagens ou PDFs.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "Arquivo muito grande", description: "Máximo 10 MB.", variant: "destructive" });
       return;
     }
     setImageUploading(true);
-    const ext = file.type.split("/")[1]?.replace("jpeg", "jpg") || "png";
+    const ext = isPdf ? "pdf" : (file.type.split("/")[1]?.replace("jpeg", "jpg") || "png");
     const path = `${user.id}/${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("note-images").upload(path, file, { contentType: file.type });
     if (error) {
-      toast({ title: "Erro ao enviar imagem", description: error.message, variant: "destructive" });
+      toast({ title: "Erro ao enviar arquivo", description: error.message, variant: "destructive" });
       setImageUploading(false);
       return;
     }
     const { data: urlData } = supabase.storage.from("note-images").getPublicUrl(path);
     setNoteImages(prev => [...prev, urlData.publicUrl]);
     setImageUploading(false);
-    toast({ title: "Imagem adicionada" });
+    toast({ title: isPdf ? "PDF adicionado" : "Imagem adicionada" });
   };
 
   const insertAtCursor = (before: string, after: string = "") => {
@@ -733,17 +739,17 @@ const NotebooksSection = React.forwardRef<HTMLDivElement>(function NotebooksSect
             <Link className="w-4 h-4" />
           </button>
           <button type="button" onClick={() => imageInputRef.current?.click()}
-            className={cn("p-1.5 rounded-md hover:bg-accent transition-colors", (previewMode || imageUploading) && "opacity-40 pointer-events-none")} title="Anexar imagem">
+            className={cn("p-1.5 rounded-md hover:bg-accent transition-colors", (previewMode || imageUploading) && "opacity-40 pointer-events-none")} title="Anexar imagem ou PDF">
             {imageUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}
           </button>
           <input
             ref={imageInputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,application/pdf"
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) handleImageUpload(file);
+              if (file) handleFileUpload(file);
               e.target.value = "";
             }}
           />
@@ -797,44 +803,60 @@ const NotebooksSection = React.forwardRef<HTMLDivElement>(function NotebooksSect
                 const items = e.clipboardData?.items;
                 if (!items) return;
                 for (const item of Array.from(items)) {
-                  if (item.type.startsWith("image/")) {
+                  if (item.type.startsWith("image/") || item.type === "application/pdf") {
                     e.preventDefault();
                     const file = item.getAsFile();
-                    if (file) handleImageUpload(file);
+                    if (file) handleFileUpload(file);
                     return;
                   }
                 }
               }}
-              placeholder="Escreva sua nota aqui... (cole ou anexe imagens)"
+              placeholder="Escreva sua nota aqui... (cole ou anexe imagens e PDFs)"
               rows={12}
               className="w-full px-3 py-2 rounded-lg bg-muted text-foreground text-sm outline-none focus:ring-2 ring-primary/30 placeholder:text-muted-foreground resize-none font-mono"
             />
-            {/* Image previews in edit mode */}
+            {/* Attachments preview in edit mode */}
             {noteImages.length > 0 && (
               <div className="rounded-lg border border-border bg-card/60 p-2">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
-                  Imagens anexadas ({noteImages.length})
+                  Anexos ({noteImages.length})
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {noteImages.map((src, i) => (
-                    <div key={i} className="relative group">
-                      <img
-                        src={src}
-                        alt="imagem"
-                        className="h-20 w-20 object-cover rounded-lg border border-border cursor-pointer hover:opacity-80 transition-opacity"
-                        loading="lazy"
-                        onClick={() => setLightboxSrc({ src, alt: "imagem" })}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setNoteImages(prev => prev.filter((_, idx) => idx !== i))}
-                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                        title="Remover imagem"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
+                  {noteImages.map((src, i) => {
+                    const isPdf = src.toLowerCase().endsWith(".pdf");
+                    return (
+                      <div key={i} className="relative group">
+                        {isPdf ? (
+                          <a
+                            href={src}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="h-20 w-20 rounded-lg border border-border bg-muted flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-accent transition-colors"
+                            title="Abrir PDF"
+                          >
+                            <FileText className="w-7 h-7 text-red-500" />
+                            <span className="text-[9px] text-muted-foreground font-medium">PDF</span>
+                          </a>
+                        ) : (
+                          <img
+                            src={src}
+                            alt="imagem"
+                            className="h-20 w-20 object-cover rounded-lg border border-border cursor-pointer hover:opacity-80 transition-opacity"
+                            loading="lazy"
+                            onClick={() => setLightboxSrc({ src, alt: "imagem" })}
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setNoteImages(prev => prev.filter((_, idx) => idx !== i))}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Remover anexo"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
