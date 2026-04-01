@@ -1450,11 +1450,11 @@ const FinancesSection = () => {
                     </div>
                     <div className="min-w-0">
                       {record.payee && (
-                        <p className="text-[10px] font-semibold text-muted-foreground truncate flex items-center gap-1">
-                          <User className="w-2.5 h-2.5" /> {record.payee}
+                        <p className="text-sm font-bold text-foreground truncate flex items-center gap-1">
+                          <User className="w-3 h-3" /> {record.payee}
                         </p>
                       )}
-                      <p className="text-sm font-bold text-foreground truncate">{record.description}</p>
+                      <p className="text-xs text-muted-foreground truncate">{record.description}</p>
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${st.cls}`}>
                           {st.label}
