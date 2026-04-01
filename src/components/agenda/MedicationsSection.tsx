@@ -22,6 +22,30 @@ import { cn } from "@/lib/utils";
 import { supabaseRetry } from "@/lib/supabaseRetry";
 import { useMedicationAlarms } from "@/hooks/useMedicationAlarms";
 
+// --- Skip reasons ---
+const SKIP_REASONS = [
+  { code: "unavailable", label: "Indisponível", icon: "🚫" },
+  { code: "ran_out", label: "Acabou", icon: "📦" },
+  { code: "not_needed", label: "Não preciso dessa dose", icon: "⏭️" },
+  { code: "suspend", label: "Suspender medicamento", icon: "⏸️" },
+] as const;
+
+type SkipReasonCode = typeof SKIP_REASONS[number]["code"];
+
+// Sentinel dates for skip reasons (year 1900 = skipped)
+const SKIP_SENTINEL: Record<string, string> = {
+  unavailable: "1900-01-01T00:00:00.000Z",
+  ran_out: "1900-01-02T00:00:00.000Z",
+  not_needed: "1900-01-03T00:00:00.000Z",
+};
+
+const isSkippedLog = (log: MedicationLog) => new Date(log.taken_at).getFullYear() === 1900;
+
+const getSkipLabel = (log: MedicationLog) => {
+  const day = new Date(log.taken_at).getDate();
+  return day === 1 ? "Indisponível" : day === 2 ? "Acabou" : "Não preciso";
+};
+
 // --- Types ---
 interface Medication {
   id: string;
@@ -217,6 +241,7 @@ export default function MedicationsSection() {
   const [form, setForm] = useState(emptyForm);
   const [pharmaOpen, setPharmaOpen] = useState(false);
   const [markingTaken, setMarkingTaken] = useState<string | null>(null);
+  const [skipMenuOpen, setSkipMenuOpen] = useState<string | null>(null); // "medId-time"
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   // Filters
@@ -286,6 +311,14 @@ export default function MedicationsSection() {
   useEffect(() => {
     if (!loading) fetchDayLogs();
   }, [selectedDate, fetchDayLogs]);
+
+  // Close skip menu on outside click
+  useEffect(() => {
+    if (!skipMenuOpen) return;
+    const handleClick = () => setSkipMenuOpen(null);
+    const timer = setTimeout(() => document.addEventListener("click", handleClick), 0);
+    return () => { clearTimeout(timer); document.removeEventListener("click", handleClick); };
+  }, [skipMenuOpen]);
 
   // --- AI Search ---
   const lastSearchRef = useRef("");
@@ -502,6 +535,51 @@ export default function MedicationsSection() {
     await (supabase.from("medication_logs") as any).delete().eq("id", logId);
     toast({ title: "Registro de medicamento desfeito" });
     fetchDayLogs();
+  };
+
+  const handleSkipDose = async (med: Medication, scheduledTime: string, reason: SkipReasonCode) => {
+    if (!user) return;
+    setSkipMenuOpen(null);
+
+    // Suspend = toggle suspend + skip this dose
+    if (reason === "suspend") {
+      await (supabase.from("medications") as any).update({
+        suspended: true,
+        suspended_at: new Date().toISOString(),
+      }).eq("id", med.id);
+      toast({ title: `⏸️ "${med.name}" suspenso`, description: "O medicamento foi movido para a lista de suspensos." });
+      fetchMedications();
+      // Also log the skip
+      const dateStr = format(selectedDate, "yyyy-MM-dd");
+      await (supabase.from("medication_logs") as any).upsert({
+        medication_id: med.id,
+        user_id: user.id,
+        taken_at: SKIP_SENTINEL["unavailable"],
+        scheduled_time: scheduledTime,
+        log_date: dateStr,
+      }, { onConflict: "medication_id,log_date,scheduled_time" });
+      fetchDayLogs();
+      return;
+    }
+
+    setMarkingTaken(`${med.id}-${scheduledTime}`);
+    const dateStr = format(selectedDate, "yyyy-MM-dd");
+    const { error } = await (supabase.from("medication_logs") as any).upsert({
+      medication_id: med.id,
+      user_id: user.id,
+      taken_at: SKIP_SENTINEL[reason],
+      scheduled_time: scheduledTime,
+      log_date: dateStr,
+    }, { onConflict: "medication_id,log_date,scheduled_time" });
+
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      const label = SKIP_REASONS.find(r => r.code === reason)?.label || reason;
+      toast({ title: `Dose não tomada`, description: label });
+      fetchDayLogs();
+    }
+    setMarkingTaken(null);
   };
 
   const getTodayLog = (medId: string, scheduledTime?: string) => 
@@ -1232,20 +1310,35 @@ export default function MedicationsSection() {
                           <div className="flex items-center gap-1.5 shrink-0">
                             {isActive && (
                               isTaken ? (
-                                <div className="flex items-center gap-1">
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 font-semibold flex items-center gap-0.5">
-                                    <CheckCircle2 className="w-3 h-3" /> {format(new Date(timeLog.taken_at), "HH:mm")}
-                                  </span>
-                                  <button
-                                    onClick={() => handleUndoTaken(timeLog.id)}
-                                    className="p-1 rounded-md hover:bg-muted transition-colors text-muted-foreground"
-                                    title="Desfazer"
-                                  >
-                                    <X className="w-3 h-3" />
-                                  </button>
-                                </div>
+                                isSkippedLog(timeLog) ? (
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 font-semibold flex items-center gap-0.5">
+                                      <XCircle className="w-3 h-3" /> {getSkipLabel(timeLog)}
+                                    </span>
+                                    <button
+                                      onClick={() => handleUndoTaken(timeLog.id)}
+                                      className="p-1 rounded-md hover:bg-muted transition-colors text-muted-foreground"
+                                      title="Desfazer"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 font-semibold flex items-center gap-0.5">
+                                      <CheckCircle2 className="w-3 h-3" /> {format(new Date(timeLog.taken_at), "HH:mm")}
+                                    </span>
+                                    <button
+                                      onClick={() => handleUndoTaken(timeLog.id)}
+                                      className="p-1 rounded-md hover:bg-muted transition-colors text-muted-foreground"
+                                      title="Desfazer"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                )
                               ) : (
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1 relative">
                                   <button
                                     onClick={() => handleMarkTaken(med, t, true)}
                                     disabled={markingTaken === `${med.id}-${t}`}
@@ -1260,6 +1353,30 @@ export default function MedicationsSection() {
                                   >
                                     <CheckCircle2 className="w-3 h-3" /> Agora
                                   </button>
+                                  <button
+                                    onClick={() => setSkipMenuOpen(skipMenuOpen === `${med.id}-${t}` ? null : `${med.id}-${t}`)}
+                                    className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-amber-500/10 text-amber-600 text-[10px] font-semibold hover:bg-amber-500/20 transition-colors"
+                                    title="Não tomei"
+                                  >
+                                    <XCircle className="w-3 h-3" />
+                                  </button>
+                                  {skipMenuOpen === `${med.id}-${t}` && (
+                                    <div className="absolute right-0 top-full mt-1 z-50 bg-popover border border-border rounded-lg shadow-lg py-1 min-w-[200px]">
+                                      <p className="px-3 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Motivo</p>
+                                      {SKIP_REASONS.map(r => (
+                                        <button
+                                          key={r.code}
+                                          onClick={() => handleSkipDose(med, t, r.code)}
+                                          className={cn(
+                                            "w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors flex items-center gap-2",
+                                            r.code === "suspend" && "text-amber-600 border-t border-border mt-1 pt-2"
+                                          )}
+                                        >
+                                          <span>{r.icon}</span> {r.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
                                 </div>
                               )
                             )}
@@ -1402,20 +1519,35 @@ export default function MedicationsSection() {
                           {allTimeLogs.map(({ time, log: timeLog }) => {
                             const isTaken = !!timeLog;
                             return (
-                              <div key={time} className="flex items-center gap-1.5">
+                              <div key={time} className="flex items-center gap-1.5 flex-wrap relative">
                                 {isTaken ? (
-                                  <>
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 font-semibold flex items-center gap-0.5">
-                                      <CheckCircle2 className="w-3 h-3" /> {time} — Tomado {format(new Date(timeLog.taken_at), "HH:mm")}
-                                    </span>
-                                    <button
-                                      onClick={() => handleUndoTaken(timeLog.id)}
-                                      className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-muted text-muted-foreground text-[10px] font-medium hover:bg-accent transition-colors"
-                                      title={`Desfazer registro das ${time}`}
-                                    >
-                                      <X className="w-2.5 h-2.5" /> Desfazer
-                                    </button>
-                                  </>
+                                  isSkippedLog(timeLog) ? (
+                                    <>
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 font-semibold flex items-center gap-0.5">
+                                        <XCircle className="w-3 h-3" /> {time} — {getSkipLabel(timeLog)}
+                                      </span>
+                                      <button
+                                        onClick={() => handleUndoTaken(timeLog.id)}
+                                        className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-muted text-muted-foreground text-[10px] font-medium hover:bg-accent transition-colors"
+                                        title="Desfazer"
+                                      >
+                                        <X className="w-2.5 h-2.5" /> Desfazer
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 font-semibold flex items-center gap-0.5">
+                                        <CheckCircle2 className="w-3 h-3" /> {time} — Tomado {format(new Date(timeLog.taken_at), "HH:mm")}
+                                      </span>
+                                      <button
+                                        onClick={() => handleUndoTaken(timeLog.id)}
+                                        className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-muted text-muted-foreground text-[10px] font-medium hover:bg-accent transition-colors"
+                                        title={`Desfazer registro das ${time}`}
+                                      >
+                                        <X className="w-2.5 h-2.5" /> Desfazer
+                                      </button>
+                                    </>
+                                  )
                                 ) : (
                                   <>
                                     <button
@@ -1434,6 +1566,30 @@ export default function MedicationsSection() {
                                     >
                                       <CheckCircle2 className="w-3 h-3" /> Agora
                                     </button>
+                                    <button
+                                      onClick={() => setSkipMenuOpen(skipMenuOpen === `${med.id}-${time}` ? null : `${med.id}-${time}`)}
+                                      className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-amber-500/10 text-amber-600 text-[10px] font-semibold hover:bg-amber-500/20 transition-colors"
+                                      title="Não tomei"
+                                    >
+                                      <XCircle className="w-3 h-3" /> Não tomei
+                                    </button>
+                                    {skipMenuOpen === `${med.id}-${time}` && (
+                                      <div className="absolute left-0 top-full mt-1 z-50 bg-popover border border-border rounded-lg shadow-lg py-1 min-w-[210px]">
+                                        <p className="px-3 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Motivo</p>
+                                        {SKIP_REASONS.map(r => (
+                                          <button
+                                            key={r.code}
+                                            onClick={() => handleSkipDose(med, time, r.code)}
+                                            className={cn(
+                                              "w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors flex items-center gap-2",
+                                              r.code === "suspend" && "text-amber-600 border-t border-border mt-1 pt-2"
+                                            )}
+                                          >
+                                            <span>{r.icon}</span> {r.label}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
                                   </>
                                 )}
                               </div>
