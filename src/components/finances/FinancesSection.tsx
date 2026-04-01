@@ -2054,40 +2054,40 @@ const FinancesSection = () => {
 
       {/* Group edit confirmation for installment groups */}
       <AlertDialog open={!!groupEditConfirm} onOpenChange={(open) => { if (!open) setGroupEditConfirm(null); }}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-sm">
           <AlertDialogHeader>
-            <AlertDialogTitle>Salvar alterações no grupo?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Este registro pertence a um parcelamento. Escolha como aplicar as alterações:
-              <br /><br />
-              <span className="text-xs text-muted-foreground">
-                "Todas" atualiza: tipo, categoria, favorecido, referente, conta, forma de pagamento e descrição.
-                <br />
-                "Em aberto" atualiza o mesmo + valor, juros e desconto (somente parcelas pendentes/vencidas).
-              </span>
+            <AlertDialogTitle className="text-base">Salvar alterações no grupo?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs">
+              Escolha como aplicar as alterações deste parcelamento:
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
-            <AlertDialogCancel onClick={() => setGroupEditConfirm(null)}>Cancelar</AlertDialogCancel>
+          <div className="flex flex-col gap-2 pt-2">
             <AlertDialogAction
               onClick={() => handleGroupEditConfirm("single")}
-              className="bg-muted text-foreground hover:bg-accent"
+              className="w-full bg-muted text-foreground hover:bg-accent text-sm justify-start px-4"
             >
               Só esta parcela
             </AlertDialogAction>
             <AlertDialogAction
               onClick={() => handleGroupEditConfirm("pending")}
-              className="bg-orange-600 text-white hover:bg-orange-700"
+              className="w-full bg-orange-600 text-white hover:bg-orange-700 text-sm justify-start px-4"
             >
-              Parcelas em aberto
+              <span className="flex flex-col items-start">
+                <span>Parcelas em aberto</span>
+                <span className="text-[10px] font-normal opacity-80">Atualiza valor, juros, desconto e dados gerais</span>
+              </span>
             </AlertDialogAction>
             <AlertDialogAction
               onClick={() => handleGroupEditConfirm("all")}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 text-sm justify-start px-4"
             >
-              Todas as parcelas
+              <span className="flex flex-col items-start">
+                <span>Todas as parcelas</span>
+                <span className="text-[10px] font-normal opacity-80">Atualiza dados gerais (não altera valores)</span>
+              </span>
             </AlertDialogAction>
-          </AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setGroupEditConfirm(null)} className="w-full mt-1">Cancelar</AlertDialogCancel>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
     </div>
