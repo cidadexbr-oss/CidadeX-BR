@@ -531,7 +531,7 @@ const FinancesSection = () => {
     }
   };
 
-  const handleGroupEditConfirm = async (updateAll: boolean) => {
+  const handleGroupEditConfirm = async (mode: "single" | "all" | "pending") => {
     if (!groupEditConfirm || !user) return;
     const { recordId, groupId, payload, editRecord: origRecord, newRecord } = groupEditConfirm;
     setSaving(true);
@@ -546,9 +546,14 @@ const FinancesSection = () => {
     if (error) {
       toast({ title: "Erro", description: "Não foi possível salvar.", variant: "destructive" });
     } else {
-      if (updateAll) {
-        // Apply common fields to all other records in the group
-        const othersInGroup = records.filter(r => r.installment_group_id === groupId && r.id !== recordId);
+      if (mode === "all" || mode === "pending") {
+        const isPending = mode === "pending";
+        // Filter: all others in group, or only pending/overdue ones
+        const othersInGroup = records.filter(r =>
+          r.installment_group_id === groupId &&
+          r.id !== recordId &&
+          (!isPending || r.status === "pendente" || r.status === "vencido")
+        );
         let groupError = false;
 
         // Extract new base description
@@ -568,6 +573,13 @@ const FinancesSection = () => {
             recurring_active: payload.recurring_active,
           };
 
+          // For pending mode, also update the amount
+          if (isPending) {
+            updatePayload.amount = newRecord.amount;
+            updatePayload.interest_amount = newRecord.interest_amount || 0;
+            updatePayload.discount_amount = newRecord.discount_amount || 0;
+          }
+
           // Update description preserving installment suffix
           if (descChanged) {
             const suffixMatch = (r.description || "").match(/\s*(\(\d+\/\d+(?:\.\d+)?\))\s*$/);
@@ -583,10 +595,11 @@ const FinancesSection = () => {
           if (e) groupError = true;
         }
 
+        const label = isPending ? "parcelas em aberto" : "todas as parcelas";
         if (groupError) {
-          toast({ title: "Erro", description: "Registro salvo, mas não foi possível atualizar todas as parcelas.", variant: "destructive" });
+          toast({ title: "Erro", description: `Registro salvo, mas não foi possível atualizar ${label}.`, variant: "destructive" });
         } else {
-          toast({ title: "✅ Registro e todas as parcelas atualizados!" });
+          toast({ title: `✅ Registro e ${label} atualizados!` });
         }
       } else {
         toast({ title: "✅ Registro atualizado!" });
@@ -2045,23 +2058,31 @@ const FinancesSection = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Salvar alterações no grupo?</AlertDialogTitle>
             <AlertDialogDescription>
-              Este registro pertence a um parcelamento. Deseja aplicar as alterações apenas nesta parcela ou em todas as parcelas do grupo?
+              Este registro pertence a um parcelamento. Escolha como aplicar as alterações:
               <br /><br />
               <span className="text-xs text-muted-foreground">
                 "Todas" atualiza: tipo, categoria, favorecido, referente, conta, forma de pagamento e descrição.
+                <br />
+                "Em aberto" atualiza o mesmo + valor, juros e desconto (somente parcelas pendentes/vencidas).
               </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
             <AlertDialogCancel onClick={() => setGroupEditConfirm(null)}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => handleGroupEditConfirm(false)}
+              onClick={() => handleGroupEditConfirm("single")}
               className="bg-muted text-foreground hover:bg-accent"
             >
               Só esta parcela
             </AlertDialogAction>
             <AlertDialogAction
-              onClick={() => handleGroupEditConfirm(true)}
+              onClick={() => handleGroupEditConfirm("pending")}
+              className="bg-orange-600 text-white hover:bg-orange-700"
+            >
+              Parcelas em aberto
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => handleGroupEditConfirm("all")}
               className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               Todas as parcelas
