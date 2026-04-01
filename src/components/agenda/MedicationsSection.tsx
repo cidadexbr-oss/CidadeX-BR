@@ -242,6 +242,7 @@ export default function MedicationsSection() {
   const [pharmaOpen, setPharmaOpen] = useState(false);
   const [markingTaken, setMarkingTaken] = useState<string | null>(null);
   const [skipMenuOpen, setSkipMenuOpen] = useState<string | null>(null); // "medId-time"
+  const [skipMenuPos, setSkipMenuPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   // Filters
@@ -1354,14 +1355,14 @@ export default function MedicationsSection() {
                                     <CheckCircle2 className="w-3 h-3" /> Agora
                                   </button>
                                   <button
-                                    onClick={() => setSkipMenuOpen(skipMenuOpen === `${med.id}-${t}` ? null : `${med.id}-${t}`)}
+                                    onClick={(e) => { const rect = (e.target as HTMLElement).getBoundingClientRect(); setSkipMenuPos({ x: rect.left, y: rect.bottom + 4 }); setSkipMenuOpen(skipMenuOpen === `${med.id}-${t}` ? null : `${med.id}-${t}`); }}
                                     className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-amber-500/10 text-amber-600 text-[10px] font-semibold hover:bg-amber-500/20 transition-colors"
                                     title="Não tomei"
                                   >
                                     <XCircle className="w-3 h-3" />
                                   </button>
                                   {skipMenuOpen === `${med.id}-${t}` && (
-                                    <div className="absolute right-0 top-full mt-1 z-50 bg-popover border border-border rounded-lg shadow-lg py-1 min-w-[200px]">
+                                    <div className="fixed z-[999] bg-popover border border-border rounded-lg shadow-xl py-1 min-w-[210px]" style={{ left: Math.min(skipMenuPos.x, window.innerWidth - 220), top: skipMenuPos.y + 160 > window.innerHeight ? skipMenuPos.y - 170 : skipMenuPos.y }}>
                                       <p className="px-3 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Motivo</p>
                                       {SKIP_REASONS.map(r => (
                                         <button
@@ -1567,14 +1568,14 @@ export default function MedicationsSection() {
                                       <CheckCircle2 className="w-3 h-3" /> Agora
                                     </button>
                                     <button
-                                      onClick={() => setSkipMenuOpen(skipMenuOpen === `${med.id}-${time}` ? null : `${med.id}-${time}`)}
+                                      onClick={(e) => { const rect = (e.target as HTMLElement).getBoundingClientRect(); setSkipMenuPos({ x: rect.left, y: rect.bottom + 4 }); setSkipMenuOpen(skipMenuOpen === `${med.id}-${time}` ? null : `${med.id}-${time}`); }}
                                       className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-amber-500/10 text-amber-600 text-[10px] font-semibold hover:bg-amber-500/20 transition-colors"
                                       title="Não tomei"
                                     >
                                       <XCircle className="w-3 h-3" /> Não tomei
                                     </button>
                                     {skipMenuOpen === `${med.id}-${time}` && (
-                                      <div className="absolute left-0 top-full mt-1 z-50 bg-popover border border-border rounded-lg shadow-lg py-1 min-w-[210px]">
+                                      <div className="fixed z-[999] bg-popover border border-border rounded-lg shadow-xl py-1 min-w-[210px]" style={{ left: Math.min(skipMenuPos.x, window.innerWidth - 220), top: skipMenuPos.y + 160 > window.innerHeight ? skipMenuPos.y - 170 : skipMenuPos.y }}>
                                         <p className="px-3 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Motivo</p>
                                         {SKIP_REASONS.map(r => (
                                           <button
